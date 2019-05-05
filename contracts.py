@@ -165,7 +165,11 @@ def scrape_player_pages(player_id, pos):
         try:
             for j in rosters[rosters.index('Player Ratings'):rosters.index('Transactions')]:
                 if j[:4] == str(year):
-                    i["salary"] = j[j.find('$'):j.find('$')+9].strip()
+                    salary = j[j.find('$'):j.find('$') + 10].strip()
+                    salary = salary.replace(',', '')
+                    salary = salary.replace('$', '')
+                    salary = salary.split()
+                    i["salary"] = int(salary[0])
                     if year < 2016:
                         i["OV"] = j[-5:-3]
                     else:
@@ -173,11 +177,12 @@ def scrape_player_pages(player_id, pos):
         except:
             for j in rosters[rosters.index('Player Ratings'):rosters.index('Trades')]:
                 if j[:4] == str(year):
-                    i["salary"] = j[j.find('$'):j.find('$')+9].strip()
-                    if year < 2016:
-                        i["OV"] = j[-5:-3]
-                    else:
-                        i["OV"] = j[-2:]
+                    salary = j[j.find('$'):j.find('$') + 10].strip()
+                    salary = salary.replace(',', '')
+                    salary = salary.replace('$', '')
+                    salary = salary.split()
+                    i["salary"] = int(salary[0])
+                    i["OV"] = j[-2:]
 
     driver.quit()
 
@@ -193,14 +198,14 @@ def scrape_all_player_pages():
     ids = scrape_all_rosters()
     for i in ids:
         for j in i:
-            player = (scrape_player_pages(j["id"], j["pos"]))
             try:
+                player = (scrape_player_pages(j["id"], j["pos"]))
                 for v, k in enumerate(player["Transactions"]):
                     if k["status"] == "RFA":
                         signing = []
                         signing.append(player["Name"])
-                        signing.append(player["Age"])
                         signing.append(j["pos"])
+                        signing.append(k["age"])
                         signing.append(k["length"])
                         signing.append(k["salary"])
                         try:
@@ -212,8 +217,10 @@ def scrape_all_player_pages():
             except:
                 continue
 
-    headers = ['Player', 'Age', 'Pos', 'Length', 'Salary', 'PrevSalary', 'OV']
+    headers = ['Player', 'Pos', 'Age', 'Length', 'Salary', 'PrevSalary', 'OV']
     df = pd.DataFrame.from_records(signings, columns=headers)
+    df["Salary"] = pd.to_numeric(df["Salary"])
+    df["OV"] = pd.to_numeric(df["OV"])
     df.to_excel("Contracts.xlsx", index=False)
 
     return
